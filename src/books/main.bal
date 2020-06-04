@@ -16,13 +16,26 @@ listener http:Listener booksListener = new (9090);
 }
 service booksService on booksListener {
 
-    //     @http:ResourceConfig {
-    //         methods: ["POST"],
-    //         path: "/books",
-    //         produces: ["application/json"]
-    //     }
-    //     resource function createBook(http:Caller caller, http:Request request) {
-    //     }
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/books",
+        consumes: ["application/json"],
+        body: "book"
+    }
+    resource function createBook(http:Caller caller, http:Request request, json book) {
+        string query = io:sprintf("INSERT INTO books (title, isbn, pages, date) VALUES ('%s', '%s', %d, '%s')",
+            book.title, book.isbn, book.pages, book.date);
+        var result = db->execute(query);
+        http:Response res = new;
+        if(result is error) {
+            res.statusCode = 500;
+        } else {
+            string location =  io:sprintf("http://TODO/%s", result["lastInsertId"]); 
+            res.statusCode = 201;
+            res.setHeader("location", location);
+        }
+        error? e = caller->respond(res);
+    }
 
     @http:ResourceConfig {
         methods: ["GET"],
@@ -48,7 +61,7 @@ service booksService on booksListener {
             };
             res.setJsonPayload(<@untainted>booksPayload);
         }
-        error? result = caller->respond(res);
+        error? e = caller->respond(res);
     }
 
     @http:ResourceConfig {
@@ -83,7 +96,7 @@ service booksService on booksListener {
                 res.setPayload(<@untainted>bookPayload);
             }
         }
-        error? result = caller->respond(res);
+        error? e = caller->respond(res);
     }
 
 // @http:ResourceConfig {
