@@ -57,13 +57,13 @@ service booksService on booksListener {
         produces: ["application/json"]
     }
     resource function readBook(http:Caller caller, http:Request request, string bookId) {
-        string query = io:sprintf("SELECT id, title FROM books WHERE id = %s", bookId);
+        string query = io:sprintf("SELECT * FROM books WHERE id = %s", bookId);
         stream <record {}, error> resultStream = db->query(query);
         var row = resultStream.next();
 
         http:Response res = new;
         if (row is error) {
-            // TODO
+            res.statusCode = 500;
         } else if (row == ()) {
             res.statusCode = 404;
             string message = io:sprintf("Book %s does not exist", bookId);
@@ -78,7 +78,7 @@ service booksService on booksListener {
         } else {
             json|error bookPayload = json.constructFrom(row);
             if (bookPayload is error) {
-                // TODO
+                res.statusCode = 500;
             } else {
                 res.setPayload(<@untainted>bookPayload);
             }
