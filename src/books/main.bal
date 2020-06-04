@@ -30,18 +30,19 @@ service booksService on booksListener {
         produces: ["application/json"]
     }
     resource function readBooks(http:Caller caller, http:Request request) {
-        stream <record {}, error> resultStream = db->query("SELECT id, title FROM books", Book);
-        stream<Book, error> bookStream = <stream<Book, error>>resultStream;
-        var reducer = function (json[] items, Book row) returns json[] {
-            items.push(row["title"]);
+        stream <record {}, error> resultStream = db->query("SELECT * FROM books");
+        var reducer = function (json[] items, record {} row) returns json[] {
+            var item = json.constructFrom(row);
+            if (!(item is error)) {
+                items.push(item);  
+            }
             return items;
         };
-        json[]|error items = bookStream.reduce(reducer, []);
+        json[]|error items = resultStream.reduce(reducer, []);
         http:Response res = new;
-        if (items is error) {
-            // TODO
-        }
-        else {
+        if(items is error) {
+            res.statusCode = 500;
+        } else {
             json booksPayload = {
                 "items": items
             };
