@@ -108,12 +108,19 @@ service booksService on booksListener {
 
 // }
 
-// @http:ResourceConfig {
-//     methods: ["DELETE"],
-//     path: "/books/{bookId}",
-//     produces: ["application/json"]
-// }
-// resource function deleteBook(http:Caller caller, http:Request request, string bookId) {
-
-// }
+    @http:ResourceConfig {
+        methods: ["DELETE"],
+        path: "/books/{bookId}"
+    }
+    resource function deleteBook(http:Caller caller, http:Request request, string bookId) {
+        string query = io:sprintf("DELETE FROM books WHERE id = %s", bookId);
+        var result = db->execute(query);
+        http:Response res = new;
+            if(result is error) {
+                res.statusCode = 500;
+            } else {
+                res.statusCode = 204;
+            }
+            error? e = caller->respond(res);
+    }
 }
